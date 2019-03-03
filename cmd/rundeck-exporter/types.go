@@ -23,4 +23,12 @@ type config struct {
 const (
 	exporterName        = "rundeck_exporter"
 	exporterDescription = "Rundeck Exporter"
+	defExpListenAddr    = ":9801"
+	defExpMetricsPath   = "/metrics"
+	defCollectInterval  = 60
+	defEnvAPIURL        = "RUNDECK_API_URL"
+	defEnvAPIToken      = "RUNDECK_API_TOKEN"
+	defEnvAPIUser       = "RUNDECK_PASS"
+	defEnvAPIPass       = "RUNDECK_USER"
+	defEnvAPIVersion    = "RUNDECK_API_VERSION"
 )
