@@ -93,17 +93,17 @@ func init() {
 	}
 	cfg.rcli = rcli
 
-	if err := rcli.ListProjects(); err != nil {
-		fmt.Println("Unable to list projects")
-	}
+	// if err := rcli.ListProjects(); err != nil {
+	// 	fmt.Println("Unable to list projects")
+	// }
 
 	if err := rcli.UpdateMetrics(); err != nil {
 		fmt.Println("Unable to update Metrics: ", err)
 	}
 
-	if err := rcli.ShowMetrics(); err != nil {
-		fmt.Println("Unable to show Metrics: ", err)
-	}
+	// if err := rcli.ShowMetrics(); err != nil {
+	// 	fmt.Println("Unable to show Metrics: ", err)
+	// }
 
 	initPromCollector()
 }

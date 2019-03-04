@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -15,15 +14,19 @@ import (
 // RMetrics keeps the collector info
 type RMetrics struct {
 	Client  *rclient.RClient
-	Metrics []Metric
+	Metrics []*Metric
 }
 
 // Metric describe the metric attributes
 type Metric struct {
-	Prom       *prometheus.Desc
-	Name       string
-	fCollector func(m *Metric) error
-	Value      float64
+	Prom        *prometheus.Desc
+	Name        string
+	NameRaw     string
+	fCollector  func(m *Metric) error
+	Value       float64
+	Type        rclient.MetricType
+	Labels      []string
+	LabelsValue []string
 }
 
 // NewCollectorMetrics return the CollectorAnalytics object
@@ -40,61 +43,90 @@ func NewCollectorMetrics(rcli *rclient.RClient, msEnabled ...string) (*RMetrics,
 	return ca, nil
 }
 
-// Update implements Collector and exposes related metrics
-func (ca *RMetrics) Update(ch chan<- prometheus.Metric) error {
-	// done := make(chan bool)
-	wg := sync.WaitGroup{}
-	wg.Add(len(ca.Metrics))
-
-	for mID := range ca.Metrics {
-		go func(m *Metric, ch chan<- prometheus.Metric) {
-			ch <- prometheus.MustNewConstMetric(
-				m.Prom,
-				prometheus.GaugeValue,
-				m.Value,
-			)
-			// done <- true
-			wg.Done()
-		}(&ca.Metrics[mID], ch)
-	}
-
-	// wait to finish all go routines
-	wg.Wait()
-	// <-done
-	return nil
-}
-
 // InitMetrics initialize a list of metrics names and return error if fails.
 func (ca *RMetrics) InitMetrics(msEnabled ...string) error {
 
-	for k, v := range ca.Client.Metrics.Counters {
-		var d rclient.DataInMetricCount
+	// Create Counter metrics
+	for k := range ca.Client.Metrics.Counters {
 		m := Metric{}
+		mName := strings.Replace(k, ".", "_", -1)
+		m.NameRaw = k
+		m.Type = rclient.MTypeCounter
 
-		metricName := strings.Replace(k, ".", "_", -1)
-		if !strings.HasPrefix(metricName, "rundeck") {
-			continue
+		if !strings.HasPrefix(mName, "rundeck") {
+			m.Name = "rundeck_" + mName
+		} else {
+			m.Name = mName
 		}
-
-		b, e := json.Marshal(v)
-		if e != nil {
-			fmt.Println(e)
-		}
-
-		e = json.Unmarshal(b, &d)
-		if e != nil {
-			fmt.Println(e)
-		}
-
-		m.Name = prometheus.BuildFQName(namespace, "counter", metricName+"_total")
-		fmt.Println(metricName+"_total : ", d.Count)
 
 		m.Prom = prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "counter", metricName+"_total"),
-			"Teste",
+			m.Name,
+			"Rundeck metrics Counter",
 			nil, nil,
 		)
-		ca.Metrics = append(ca.Metrics, m)
+		ca.Metrics = append(ca.Metrics, &m)
+	}
+	for k := range ca.Client.Metrics.Gauges {
+		m := Metric{}
+		mName := strings.Replace(k, ".", "_", -1)
+		m.NameRaw = k
+		m.Type = rclient.MTypeGauge
+
+		if !strings.HasPrefix(mName, "rundeck") {
+			m.Name = "rundeck_" + mName
+		} else {
+			m.Name = mName
+		}
+
+		m.Prom = prometheus.NewDesc(
+			m.Name,
+			"Rundeck metrics Gauge",
+			nil, nil,
+		)
+		ca.Metrics = append(ca.Metrics, &m)
+	}
+	for k := range ca.Client.Metrics.Meters {
+		m := Metric{}
+
+		mName := strings.Replace(k, ".", "_", -1)
+		m.NameRaw = k
+		m.Type = rclient.MTypeMeter
+		m.Labels = []string{"type"}
+
+		if !strings.HasPrefix(mName, "rundeck") {
+			m.Name = "rundeck_" + mName
+		} else {
+			m.Name = mName
+		}
+
+		m.Prom = prometheus.NewDesc(
+			m.Name,
+			"Rundeck metrics Meter",
+			m.Labels, nil,
+		)
+		ca.Metrics = append(ca.Metrics, &m)
+	}
+	for k := range ca.Client.Metrics.Timers {
+		m := Metric{}
+
+		mName := strings.Replace(k, ".", "_", -1)
+		mName = strings.Replace(mName, "-", "_", -1)
+		m.NameRaw = k
+		m.Type = rclient.MTypeTimer
+		m.Labels = []string{"type"}
+
+		if !strings.HasPrefix(mName, "rundeck") {
+			m.Name = "rundeck_" + mName
+		} else {
+			m.Name = mName
+		}
+
+		m.Prom = prometheus.NewDesc(
+			m.Name,
+			"Rundeck metrics Timer",
+			m.Labels, nil,
+		)
+		ca.Metrics = append(ca.Metrics, &m)
 	}
 	return nil
 }
@@ -102,41 +134,78 @@ func (ca *RMetrics) InitMetrics(msEnabled ...string) error {
 // InitCollectorsUpdater start the paralel auto update for each collector
 func (ca *RMetrics) InitCollectorsUpdater() {
 	for {
-		for mID := range ca.Metrics {
-			go func(m *Metric) {
-				m.fCollector(m)
-			}(&ca.Metrics[mID])
-		}
+		ca.collectorUpdate()
+
 		time.Sleep(time.Second * time.Duration(60))
+		if err := ca.Client.UpdateMetrics(); err != nil {
+			fmt.Println("Unable to update Metrics: ", err)
+		}
 	}
 }
 
-func (ca *RMetrics) collectorCounters(metric, dimension string) func(m *Metric) error {
-	return func(m *Metric) error {
+func (ca *RMetrics) collectorUpdate() error {
 
-		for k, v := range ca.Client.Metrics.Counters {
-			var d rclient.DataInMetricCount
-
-			metricName := strings.Replace(k, ".", "_", -1)
-			if !strings.HasPrefix(metricName, "rundeck") {
+	for _, m := range ca.Metrics {
+		var err error
+		if m.Type == rclient.MTypeCounter {
+			m.Value, err = ca.Client.GetMetricValueCounter(m.NameRaw)
+			if err != nil {
+				fmt.Println("Error getting Counter metric value: ", err)
 				continue
 			}
-
-			b, e := json.Marshal(v)
-			if e != nil {
-				fmt.Println(e)
+		} else if m.Type == rclient.MTypeGauge {
+			m.Value, err = ca.Client.GetMetricValueGauge(m.NameRaw)
+			if err != nil {
+				fmt.Println("Error getting Gauge metric value: ", err)
+				continue
 			}
-
-			e = json.Unmarshal(b, &d)
-			if e != nil {
-				fmt.Println(e)
+		} else if m.Type == rclient.MTypeMeter {
+			m.Value, err = ca.Client.GetMetricValueMeter(m.NameRaw, "count")
+			if err != nil {
+				fmt.Println("Error getting Meter metric value: ", err)
+				continue
 			}
-
-			m.Name = prometheus.BuildFQName(namespace, "counter", metricName+"_total")
-			fmt.Println(metricName+"_total : ", d.Count)
-			m.Value = float64(d.Count)
-
+			m.LabelsValue = []string{"count"}
+		} else if m.Type == rclient.MTypeTimer {
+			m.Value, err = ca.Client.GetMetricValueTimer(m.NameRaw, "count")
+			if err != nil {
+				fmt.Println("Error getting Timer metric value: ", err)
+				continue
+			}
+			m.LabelsValue = []string{"count"}
+		} else {
+			fmt.Println("#>> Type not found")
 		}
-		return nil
 	}
+	return nil
+}
+
+// Update implements Collector and exposes related metrics
+func (ca *RMetrics) Update(ch chan<- prometheus.Metric) error {
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(ca.Metrics))
+
+	for mID := range ca.Metrics {
+		go func(m *Metric, ch chan<- prometheus.Metric) {
+			if m.Labels == nil {
+				ch <- prometheus.MustNewConstMetric(
+					m.Prom,
+					prometheus.GaugeValue,
+					m.Value,
+				)
+			} else {
+				ch <- prometheus.MustNewConstMetric(
+					m.Prom,
+					prometheus.GaugeValue,
+					m.Value,
+					m.LabelsValue...,
+				)
+			}
+			wg.Done()
+		}(ca.Metrics[mID], ch)
+	}
+
+	wg.Wait()
+	return nil
 }

@@ -5,11 +5,11 @@ type DataInMetricCount struct {
 	Count int `json:"count"`
 }
 
-type dataInMetricGauges struct {
+type DataInMetricGauges struct {
 	Value float64 `json:"value"`
 }
 
-type dataInMetricMeters struct {
+type DataInMetricMeters struct {
 	Count    int     `json:"count"`
 	M15Rate  float64 `json:"m15_rate"`
 	M1Rate   float64 `json:"m1_rate"`
@@ -17,7 +17,7 @@ type dataInMetricMeters struct {
 	MeanRate float64 `json:"mean_rate"`
 }
 
-type dataInMetricTimers struct {
+type DataInMetricTimers struct {
 	Count    int     `json:"count"`
 	Max      float64 `json:"max"`
 	Mean     float64 `json:"mean"`

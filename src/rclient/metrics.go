@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-type metricType int
+type MetricType int
 
 const (
 	// MTypeCounter is an metric type Counter
-	MTypeCounter metricType = iota
+	MTypeCounter MetricType = iota
 	// MTypeGauge is an metric type Gauge
 	MTypeGauge
 	// MTypeHistogram is an metric type Histogram
@@ -25,11 +25,11 @@ const (
 type Metric struct {
 	Name  string
 	Value float64
-	Type  metricType
+	// Type  metricType
 }
 
 // Metrics is an slice of Metric
-type Metrics *[]Metric
+type Metrics map[string]*Metric
 
 // UpdateMetrics retrieve metrics from Rundeck and make it available
 func (rc *RClient) UpdateMetrics() error {
@@ -80,7 +80,7 @@ func (rc *RClient) ShowMetrics() error {
 	}
 
 	for k, v := range rc.Metrics.Gauges {
-		var d dataInMetricGauges
+		var d DataInMetricGauges
 		metricName := strings.Replace(k, ".", "_", -1)
 		if !strings.HasPrefix(metricName, "rundeck") {
 			metricName = "rundeck_" + metricName
@@ -100,7 +100,7 @@ func (rc *RClient) ShowMetrics() error {
 	}
 
 	for k, v := range rc.Metrics.Meters {
-		var d dataInMetricMeters
+		var d DataInMetricMeters
 		metricName := strings.Replace(k, ".", "_", -1)
 		if !strings.HasPrefix(metricName, "rundeck") {
 			metricName = "rundeck_servlet_" + metricName
@@ -121,7 +121,7 @@ func (rc *RClient) ShowMetrics() error {
 	}
 
 	for k, v := range rc.Metrics.Timers {
-		var d dataInMetricTimers
+		var d DataInMetricTimers
 		metricName := strings.Replace(k, ".", "_", -1)
 		if !strings.HasPrefix(metricName, "rundeck") {
 			metricName = "rundeck_" + metricName
@@ -142,4 +142,96 @@ func (rc *RClient) ShowMetrics() error {
 	}
 
 	return nil
+}
+
+func (rc *RClient) GetMetricValueCounter(metricName string) (float64, error) {
+	var d DataInMetricCount
+
+	if v, ok := rc.Metrics.Counters[metricName]; ok {
+		b, e := json.Marshal(v)
+		if e != nil {
+			fmt.Println(e)
+		}
+
+		e = json.Unmarshal(b, &d)
+		if e != nil {
+			fmt.Println(e)
+		}
+		return float64(d.Count), nil
+	} else {
+		e := fmt.Errorf("Error getting Metric Value Counter: %v", ok)
+		return 0.0, e
+	}
+
+}
+
+func (rc *RClient) GetMetricValueGauge(metricName string) (float64, error) {
+	var d DataInMetricGauges
+
+	if v, ok := rc.Metrics.Gauges[metricName]; ok {
+		b, e := json.Marshal(v)
+		if e != nil {
+			fmt.Println(e)
+		}
+
+		e = json.Unmarshal(b, &d)
+		if e != nil {
+			fmt.Println(e)
+		}
+
+		return float64(d.Value), nil
+	} else {
+		return 0.0, fmt.Errorf("Error getting Metric Value Gauges: ", ok)
+	}
+
+}
+
+func (rc *RClient) GetMetricValueMeter(metricName, dimension string) (float64, error) {
+	var d DataInMetricMeters
+
+	if v, ok := rc.Metrics.Meters[metricName]; ok {
+		b, e := json.Marshal(v)
+		if e != nil {
+			fmt.Println(e)
+		}
+
+		e = json.Unmarshal(b, &d)
+		if e != nil {
+			fmt.Println(e)
+		}
+		switch dimension {
+		case "count":
+			return float64(d.Count), nil
+		default:
+			return 0.0, nil
+		}
+	} else {
+		return 0.0, fmt.Errorf("Error getting Metric Value Meters: ", ok)
+	}
+	return 0.0, nil
+}
+
+func (rc *RClient) GetMetricValueTimer(metricName, dimension string) (float64, error) {
+	var d DataInMetricTimers
+
+	if v, ok := rc.Metrics.Timers[metricName]; ok {
+		b, e := json.Marshal(v)
+		if e != nil {
+			fmt.Println(e)
+		}
+
+		e = json.Unmarshal(b, &d)
+		if e != nil {
+			fmt.Println(e)
+		}
+		switch dimension {
+		case "count":
+			return float64(d.Count), nil
+		default:
+			return 0.0, nil
+		}
+	} else {
+		return 0.0, fmt.Errorf("Error getting Metric Value Timer: ", ok)
+	}
+	return 0.0, nil
 }
