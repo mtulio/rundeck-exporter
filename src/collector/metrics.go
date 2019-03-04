@@ -22,7 +22,7 @@ type Metric struct {
 	Prom        *prometheus.Desc
 	Name        string
 	NameRaw     string
-	fCollector  func(m *Metric) error
+	NameDim     string
 	Value       float64
 	Type        rclient.MetricType
 	Labels      []string
@@ -86,47 +86,53 @@ func (ca *RMetrics) InitMetrics(msEnabled ...string) error {
 		ca.Metrics = append(ca.Metrics, &m)
 	}
 	for k := range ca.Client.Metrics.Meters {
-		m := Metric{}
+		for _, d := range ca.Client.GetDimensions("Meter") {
+			m := Metric{}
 
-		mName := strings.Replace(k, ".", "_", -1)
-		m.NameRaw = k
-		m.Type = rclient.MTypeMeter
-		m.Labels = []string{"type"}
+			mName := strings.Replace(k, ".", "_", -1)
+			m.NameRaw = k
+			m.NameDim = d
+			m.Type = rclient.MTypeMeter
+			m.Labels = []string{"type"}
 
-		if !strings.HasPrefix(mName, "rundeck") {
-			m.Name = "rundeck_" + mName
-		} else {
-			m.Name = mName
+			if !strings.HasPrefix(mName, "rundeck") {
+				m.Name = "rundeck_" + mName
+			} else {
+				m.Name = mName
+			}
+
+			m.Prom = prometheus.NewDesc(
+				m.Name,
+				"Rundeck metrics Meter",
+				m.Labels, nil,
+			)
+			ca.Metrics = append(ca.Metrics, &m)
 		}
-
-		m.Prom = prometheus.NewDesc(
-			m.Name,
-			"Rundeck metrics Meter",
-			m.Labels, nil,
-		)
-		ca.Metrics = append(ca.Metrics, &m)
 	}
 	for k := range ca.Client.Metrics.Timers {
-		m := Metric{}
+		for _, d := range ca.Client.GetDimensions("Timers") {
+			m := Metric{}
 
-		mName := strings.Replace(k, ".", "_", -1)
-		mName = strings.Replace(mName, "-", "_", -1)
-		m.NameRaw = k
-		m.Type = rclient.MTypeTimer
-		m.Labels = []string{"type"}
+			mName := strings.Replace(k, ".", "_", -1)
+			mName = strings.Replace(mName, "-", "_", -1)
+			m.NameRaw = k
+			m.NameDim = d
+			m.Type = rclient.MTypeTimer
+			m.Labels = []string{"type"}
 
-		if !strings.HasPrefix(mName, "rundeck") {
-			m.Name = "rundeck_" + mName
-		} else {
-			m.Name = mName
+			if !strings.HasPrefix(mName, "rundeck") {
+				m.Name = "rundeck_" + mName
+			} else {
+				m.Name = mName
+			}
+
+			m.Prom = prometheus.NewDesc(
+				m.Name,
+				"Rundeck metrics Timer",
+				m.Labels, nil,
+			)
+			ca.Metrics = append(ca.Metrics, &m)
 		}
-
-		m.Prom = prometheus.NewDesc(
-			m.Name,
-			"Rundeck metrics Timer",
-			m.Labels, nil,
-		)
-		ca.Metrics = append(ca.Metrics, &m)
 	}
 	return nil
 }
@@ -160,19 +166,19 @@ func (ca *RMetrics) collectorUpdate() error {
 				continue
 			}
 		} else if m.Type == rclient.MTypeMeter {
-			m.Value, err = ca.Client.GetMetricValueMeter(m.NameRaw, "count")
+			m.Value, err = ca.Client.GetMetricValueMeter(m.NameRaw, m.NameDim)
 			if err != nil {
 				fmt.Println("Error getting Meter metric value: ", err)
 				continue
 			}
-			m.LabelsValue = []string{"count"}
+			m.LabelsValue = []string{m.NameDim}
 		} else if m.Type == rclient.MTypeTimer {
-			m.Value, err = ca.Client.GetMetricValueTimer(m.NameRaw, "count")
+			m.Value, err = ca.Client.GetMetricValueTimer(m.NameRaw, m.NameDim)
 			if err != nil {
 				fmt.Println("Error getting Timer metric value: ", err)
 				continue
 			}
-			m.LabelsValue = []string{"count"}
+			m.LabelsValue = []string{m.NameDim}
 		} else {
 			fmt.Println("#>> Type not found")
 		}

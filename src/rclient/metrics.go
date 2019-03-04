@@ -200,8 +200,16 @@ func (rc *RClient) GetMetricValueMeter(metricName, dimension string) (float64, e
 			fmt.Println(e)
 		}
 		switch dimension {
-		case "count":
+		case "Count":
 			return float64(d.Count), nil
+		case "M15Rate":
+			return float64(d.M15Rate), nil
+		case "M1Rate":
+			return float64(d.M1Rate), nil
+		case "M5Rate":
+			return float64(d.M5Rate), nil
+		case "MeanRate":
+			return float64(d.MeanRate), nil
 		default:
 			return 0.0, nil
 		}
@@ -225,8 +233,36 @@ func (rc *RClient) GetMetricValueTimer(metricName, dimension string) (float64, e
 			fmt.Println(e)
 		}
 		switch dimension {
-		case "count":
+		case "Count":
 			return float64(d.Count), nil
+		case "Max":
+			return float64(d.Max), nil
+		case "Mean":
+			return float64(d.Mean), nil
+		case "Min":
+			return float64(d.Min), nil
+		case "P50":
+			return float64(d.P50), nil
+		case "P75":
+			return float64(d.P75), nil
+		case "P95":
+			return float64(d.P95), nil
+		case "P98":
+			return float64(d.P98), nil
+		case "P99":
+			return float64(d.P99), nil
+		case "P999":
+			return float64(d.P999), nil
+		case "Stddev":
+			return float64(d.Stddev), nil
+		case "M15Rate":
+			return float64(d.M15Rate), nil
+		case "M1Rate":
+			return float64(d.M1Rate), nil
+		case "M5Rate":
+			return float64(d.M5Rate), nil
+		case "MeanRate":
+			return float64(d.MeanRate), nil
 		default:
 			return 0.0, nil
 		}
@@ -234,4 +270,21 @@ func (rc *RClient) GetMetricValueTimer(metricName, dimension string) (float64, e
 		return 0.0, fmt.Errorf("Error getting Metric Value Timer: ", ok)
 	}
 	return 0.0, nil
+}
+
+func (rc *RClient) GetDimensions(mtype string) []string {
+
+	var ds []string
+
+	switch mtype {
+	case "Meter":
+		ds = []string{"Count", "M15Rate", "M1Rate", "M5Rate", "MeanRate"}
+	case "Timers":
+		ds = []string{"Count", "Max", "Mean", "Min", "P50", "P75", "P95", "P98",
+			"P99", "P999", "Stddev", "M15Rate", "M1Rate", "M5Rate", "MeanRate"}
+	default:
+		return ds
+	}
+
+	return ds
 }
