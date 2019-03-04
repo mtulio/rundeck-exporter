@@ -1,15 +1,15 @@
 package rclient
 
 // Metrics
-type dataInCount struct {
+type DataInMetricCount struct {
 	Count int `json:"count"`
 }
 
-type dataInGauges struct {
+type dataInMetricGauges struct {
 	Value float64 `json:"value"`
 }
 
-type dataInMeters struct {
+type dataInMetricMeters struct {
 	Count    int     `json:"count"`
 	M15Rate  float64 `json:"m15_rate"`
 	M1Rate   float64 `json:"m1_rate"`
@@ -17,7 +17,7 @@ type dataInMeters struct {
 	MeanRate float64 `json:"mean_rate"`
 }
 
-type dataInTimers struct {
+type dataInMetricTimers struct {
 	Count    int     `json:"count"`
 	Max      float64 `json:"max"`
 	Mean     float64 `json:"mean"`

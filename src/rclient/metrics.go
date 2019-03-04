@@ -6,22 +6,61 @@ import (
 	"strings"
 )
 
-// ShowMetrics parse metrics from Http WEB app show it out.
-func (rc *RClient) ShowMetrics() error {
+type metricType int
 
-	fmt.Println(rc.SOAP)
+const (
+	// MTypeCounter is an metric type Counter
+	MTypeCounter metricType = iota
+	// MTypeGauge is an metric type Gauge
+	MTypeGauge
+	// MTypeHistogram is an metric type Histogram
+	MTypeHistogram
+	// MTypeMeter is an metric type Meter
+	MTypeMeter
+	// MTypeTimer is an metric type Timer
+	MTypeTimer
+)
+
+// Metric is an representation of one metric
+type Metric struct {
+	Name  string
+	Value float64
+	Type  metricType
+}
+
+// Metrics is an slice of Metric
+type Metrics *[]Metric
+
+// UpdateMetrics retrieve metrics from Rundeck and make it available
+func (rc *RClient) UpdateMetrics() error {
 	if rc.SOAP == nil {
-		fmt.Println("SOA is not defined")
-		return nil
+		err := fmt.Errorf("Client SOA is not initializated")
+		return err
 	}
 
 	m, err := rc.SOAP.GetMetrics()
 	if err != nil {
 		panic(err)
 	}
+	rc.Metrics = m
+	return nil
+}
 
-	for k, v := range m.Counters {
-		var d dataInCount
+// ShowMetrics parse metrics from Http WEB app show it out.
+func (rc *RClient) ShowMetrics() error {
+
+	if rc.SOAP == nil {
+		err := fmt.Errorf("Client SOA is not initializated")
+		return err
+	}
+
+	if rc.Metrics == nil {
+		err := fmt.Errorf("Metrics was not initializaded. Use UpdateMetrics()")
+		return err
+	}
+
+	for k, v := range rc.Metrics.Counters {
+		var d DataInMetricCount
 		metricName := strings.Replace(k, ".", "_", -1)
 		if !strings.HasPrefix(metricName, "rundeck") {
 			continue
@@ -40,8 +79,8 @@ func (rc *RClient) ShowMetrics() error {
 		fmt.Println(metricName+"_total : ", d.Count)
 	}
 
-	for k, v := range m.Gauges {
-		var d dataInGauges
+	for k, v := range rc.Metrics.Gauges {
+		var d dataInMetricGauges
 		metricName := strings.Replace(k, ".", "_", -1)
 		if !strings.HasPrefix(metricName, "rundeck") {
 			metricName = "rundeck_" + metricName
@@ -60,8 +99,8 @@ func (rc *RClient) ShowMetrics() error {
 		fmt.Println(metricName+"_total : ", d.Value)
 	}
 
-	for k, v := range m.Meters {
-		var d dataInMeters
+	for k, v := range rc.Metrics.Meters {
+		var d dataInMetricMeters
 		metricName := strings.Replace(k, ".", "_", -1)
 		if !strings.HasPrefix(metricName, "rundeck") {
 			metricName = "rundeck_servlet_" + metricName
@@ -81,8 +120,8 @@ func (rc *RClient) ShowMetrics() error {
 		fmt.Println(metricName+"_rate : ", d.M1Rate, d.M5Rate, d.M15Rate, d.MeanRate)
 	}
 
-	for k, v := range m.Timers {
-		var d dataInTimers
+	for k, v := range rc.Metrics.Timers {
+		var d dataInMetricTimers
 		metricName := strings.Replace(k, ".", "_", -1)
 		if !strings.HasPrefix(metricName, "rundeck") {
 			metricName = "rundeck_" + metricName

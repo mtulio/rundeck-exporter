@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mtulio/rundeck-exporter/src/collector"
 	"github.com/mtulio/rundeck-exporter/src/rclient"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/log"
 )
 
 var (
@@ -24,42 +27,42 @@ func init() {
 	cfg.expListenAddr = flag.String("web.listen-address", defExpListenAddr, "Address on which to expose metrics and web interface.")
 	cfg.expMetricsPath = flag.String("web.telemetry-path", defExpMetricsPath, "Path under which to expose metrics.")
 
-	cfg.apiURL = flag.String("rundeck.url", "", "API URL")
-	cfg.apiUser = flag.String("rundeck.user", "", "API USER")
-	cfg.apiPass = flag.String("rundeck.pass", "", "API_PASS")
-	cfg.apiToken = flag.String("rundeck.token", "", "API token")
-	cfg.apiVersion = flag.String("rundeck.version", "", "API version")
+	apiURL := flag.String("rundeck.url", "", "API URL")
+	apiUser := flag.String("rundeck.user", "", "API USER")
+	apiPass := flag.String("rundeck.pass", "", "API_PASS")
+	apiToken := flag.String("rundeck.token", "", "API token")
+	apiVersion := flag.String("rundeck.version", "", "API version")
 
-	cfg.collectorInterval = flag.Int("metrics.interval", defCollectInterval, "Interval in seconds to retrieve metrics from API")
+	// collectorInterval := flag.Int("metrics.interval", defCollectInterval, "Interval in seconds to retrieve metrics from API")
 
 	flag.Usage = usage
 	flag.Parse()
 
-	if *cfg.apiURL == "" {
-		*cfg.apiURL = os.Getenv(defEnvAPIURL)
+	if *apiURL == "" {
+		*apiURL = os.Getenv(defEnvAPIURL)
 	}
 
-	if *cfg.apiToken == "" {
-		*cfg.apiToken = os.Getenv(defEnvAPIToken)
+	if *apiToken == "" {
+		*apiToken = os.Getenv(defEnvAPIToken)
 	}
 
-	if *cfg.apiUser == "" {
-		*cfg.apiUser = os.Getenv(defEnvAPIUser)
+	if *apiUser == "" {
+		*apiUser = os.Getenv(defEnvAPIUser)
 	}
 
-	if cfg.apiPass == nil {
-		*cfg.apiPass = os.Getenv(defEnvAPIPass)
+	if apiPass == nil {
+		*apiPass = os.Getenv(defEnvAPIPass)
 	}
 
-	if *cfg.apiVersion == "" {
+	if *apiVersion == "" {
 		v := os.Getenv(defEnvAPIVersion)
 		if v == "" {
 			v = "18"
 		}
-		*cfg.apiVersion = v
+		*apiVersion = v
 	}
 
-	if (*cfg.apiUser == "" || *cfg.apiPass == "") && (*cfg.apiToken == "") {
+	if (*apiUser == "" || *apiPass == "") && (*apiToken == "") {
 		panic("Error, auth Token, or User && Password was not provided")
 	}
 
@@ -68,19 +71,19 @@ func init() {
 		emsg := fmt.Errorf("Unable to create the client")
 		panic(emsg)
 	}
-	rconf.Base.BaseURL = *cfg.apiURL
-	rconf.Base.APIVersion = *cfg.apiVersion
+	rconf.Base.BaseURL = *apiURL
+	rconf.Base.APIVersion = *apiVersion
 
-	if *cfg.apiUser != "" && *cfg.apiPass != "" {
+	if *apiUser != "" && *apiPass != "" {
 		rconf.EnableHTTP = true
 		rconf.Base.AuthMethod = "basic"
-		rconf.Base.Username = *cfg.apiUser
-		rconf.Base.Password = *cfg.apiPass
+		rconf.Base.Username = *apiUser
+		rconf.Base.Password = *apiPass
 	}
 
-	if *cfg.apiToken != "" {
+	if *apiToken != "" {
 		rconf.EnableAPI = true
-		rconf.Base.Token = *cfg.apiToken
+		rconf.Base.Token = *apiToken
 	}
 
 	// Init clint
@@ -88,14 +91,46 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	cfg.rcli = rcli
 
 	if err := rcli.ListProjects(); err != nil {
 		fmt.Println("Unable to list projects")
 	}
 
-	if err := rcli.ShowMetrics(); err != nil {
-		fmt.Println("Unable to show Metrics")
+	if err := rcli.UpdateMetrics(); err != nil {
+		fmt.Println("Unable to update Metrics: ", err)
 	}
 
-	// initPromCollector()
+	if err := rcli.ShowMetrics(); err != nil {
+		fmt.Println("Unable to show Metrics: ", err)
+	}
+
+	initPromCollector()
+}
+
+func initPromCollector() error {
+	var err error
+	err = nil
+	if cfg.prom == nil {
+		cfg.prom = new(configProm)
+	}
+
+	cfg.prom.Collector, err = collector.NewCollectorMaster(cfg.rcli)
+	if err != nil {
+		log.Warnln("Init Prom: Couldn't create collector: ", err)
+		return err
+	}
+
+	cfg.prom.Registry = prometheus.NewRegistry()
+	err = cfg.prom.Registry.Register(cfg.prom.Collector)
+	if err != nil {
+		log.Errorln("Init Prom: Couldn't register collector:", err)
+		return err
+	}
+
+	cfg.prom.Gatherers = &prometheus.Gatherers{
+		prometheus.DefaultGatherer,
+		cfg.prom.Registry,
+	}
+	return nil
 }

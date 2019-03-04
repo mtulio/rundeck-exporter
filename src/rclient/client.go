@@ -6,8 +6,9 @@ import (
 
 // RClient keeps rundeck client to iteract with API or web app.
 type RClient struct {
-	API  *rundeck.Client
-	SOAP *rundeck.Client
+	API     *rundeck.Client
+	SOAP    *rundeck.Client
+	Metrics *rundeck.SystemMetrics
 }
 
 // NewClient return the client
