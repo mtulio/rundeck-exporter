@@ -55,3 +55,25 @@ dockers:
     - "v{{ .Major }}"
     - "v{{ .Major }}.{{ .Minor }}"
     - latest
+- binary: rundeck-exporter
+  image: neemuchaordic/rundeck-exporter
+  goos: linux
+  goarch: amd64
+  skip_push: false
+  dockerfile: ../../hack/Dockerfile-goreleaser
+  tag_templates:
+    - "{{ .Tag }}"
+    - "v{{ .Major }}"
+    - "v{{ .Major }}.{{ .Minor }}"
+    - latest
+- binary: rundeck-exporter
+  image: linxnapse/rundeck-exporter
+  goos: linux
+  goarch: amd64
+  skip_push: false
+  dockerfile: ../../hack/Dockerfile-goreleaser
+  tag_templates:
+    - "{{ .Tag }}"
+    - "v{{ .Major }}"
+    - "v{{ .Major }}.{{ .Minor }}"
+    - latest
