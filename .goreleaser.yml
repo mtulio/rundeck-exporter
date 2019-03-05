@@ -1,0 +1,52 @@
+# GgoReleaser configuration.
+builds:
+-
+  env:
+    - CGO_ENABLED=0
+  ldflags:
+    - -s -w
+    - -X main.VersionFull={{ .Tag }}
+    - -X main.VersionCommit={{ .Env.APP_COMMIT }}
+    - -X main.VersionTag={{ .Tag }}
+archive:
+  replacements:
+    darwin: Darwin
+    amd64: x86_64
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
+nfpm:
+  name_template: '{{ .ProjectName }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+  homepage:  https://github.com/mtulio/rundeck-exporter
+  description: Rundeck Exporter for Prometheus
+  maintainer: Marco Tulio R Braga <root@mtulio.eng.br>
+  license: Apache-2
+  vendor: rundeck-exporter
+  formats:
+  - deb
+  - rpm
+  dependencies:
+  - git
+  recommends:
+  - rpm
+
+# https://goreleaser.com/customization/#Docker
+dockers:
+- binary: rundeck-exporter
+  image: mtulio/rundeck-exporter
+  goos: linux
+  goarch: amd64
+  skip_push: false
+  dockerfile: hack/Dockerfile-goreleaser
+  tag_templates:
+    - "{{ .Tag }}"
+    - "v{{ .Major }}"
+    - "v{{ .Major }}.{{ .Minor }}"
+    - latest
