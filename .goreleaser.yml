@@ -8,6 +8,11 @@ builds:
     - -X main.VersionFull={{ .Tag }}
     - -X main.VersionCommit={{ .Env.APP_COMMIT }}
     - -X main.VersionTag={{ .Tag }}
+  ignore:
+    - goos: darwin
+      goarch: 386
+    - goos: linux
+      goarch: 386
 archive:
   replacements:
     darwin: Darwin
@@ -44,7 +49,7 @@ dockers:
   goos: linux
   goarch: amd64
   skip_push: false
-  dockerfile: hack/Dockerfile-goreleaser
+  dockerfile: ../../hack/Dockerfile-goreleaser
   tag_templates:
     - "{{ .Tag }}"
     - "v{{ .Major }}"

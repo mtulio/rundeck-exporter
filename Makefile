@@ -42,16 +42,23 @@ tag:
 
 # Goreleaser
 # https://goreleaser.com/introduction/
+GORELEASE_ROOT ?= ../../
 gorelease-init:
 	goreleaser init
 
 release:
-	. ./hack/env-build.sh && \
-		goreleaser --rm-dist
+	@$(foreach dircmd,$(shell ls cmd/), \
+	cd cmd/$(dircmd); \
+	. $(GORELEASE_ROOT)/hack/env-build.sh && \
+		goreleaser --rm-dist -f $(GORELEASE_ROOT)/.goreleaser.yml \
+	; cd -)
 
 release-snap:
-	. ./hack/env-build.sh && \
-		goreleaser --rm-dist --snapshot
+	@$(foreach dircmd,$(shell ls cmd/), \
+	cd cmd/$(dircmd); \
+	. $(GORELEASE_ROOT)/hack/env-build.sh && \
+		goreleaser --rm-dist --snapshot -f $(GORELEASE_ROOT)/.goreleaser.yml \
+	; cd -)
 
 # DEV Release builder
 # Using ghr to avoid dependencies in goreleaser
