@@ -3,9 +3,9 @@ package rclient
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 )
 
+// MetricType is the type of metric.
 type MetricType int
 
 const (
@@ -25,7 +25,6 @@ const (
 type Metric struct {
 	Name  string
 	Value float64
-	// Type  metricType
 }
 
 // Metrics is an slice of Metric
@@ -46,104 +45,7 @@ func (rc *RClient) UpdateMetrics() error {
 	return nil
 }
 
-// ShowMetrics parse metrics from Http WEB app show it out.
-func (rc *RClient) ShowMetrics() error {
-
-	if rc.SOAP == nil {
-		err := fmt.Errorf("Client SOA is not initializated")
-		return err
-	}
-
-	if rc.Metrics == nil {
-		err := fmt.Errorf("Metrics was not initializaded. Use UpdateMetrics()")
-		return err
-	}
-
-	for k, v := range rc.Metrics.Counters {
-		var d DataInMetricCount
-		metricName := strings.Replace(k, ".", "_", -1)
-		if !strings.HasPrefix(metricName, "rundeck") {
-			continue
-		}
-
-		b, e := json.Marshal(v)
-		if e != nil {
-			fmt.Println(e)
-		}
-
-		e = json.Unmarshal(b, &d)
-		if e != nil {
-			fmt.Println(e)
-		}
-
-		fmt.Println(metricName+"_total : ", d.Count)
-	}
-
-	for k, v := range rc.Metrics.Gauges {
-		var d DataInMetricGauges
-		metricName := strings.Replace(k, ".", "_", -1)
-		if !strings.HasPrefix(metricName, "rundeck") {
-			metricName = "rundeck_" + metricName
-		}
-
-		b, e := json.Marshal(v)
-		if e != nil {
-			fmt.Println(e)
-		}
-
-		e = json.Unmarshal(b, &d)
-		if e != nil {
-			fmt.Println(e)
-		}
-
-		fmt.Println(metricName+"_total : ", d.Value)
-	}
-
-	for k, v := range rc.Metrics.Meters {
-		var d DataInMetricMeters
-		metricName := strings.Replace(k, ".", "_", -1)
-		if !strings.HasPrefix(metricName, "rundeck") {
-			metricName = "rundeck_servlet_" + metricName
-		}
-
-		b, e := json.Marshal(v)
-		if e != nil {
-			fmt.Println(e)
-		}
-
-		e = json.Unmarshal(b, &d)
-		if e != nil {
-			fmt.Println(e)
-		}
-
-		fmt.Println(metricName+"_total : ", d.Count)
-		fmt.Println(metricName+"_rate : ", d.M1Rate, d.M5Rate, d.M15Rate, d.MeanRate)
-	}
-
-	for k, v := range rc.Metrics.Timers {
-		var d DataInMetricTimers
-		metricName := strings.Replace(k, ".", "_", -1)
-		if !strings.HasPrefix(metricName, "rundeck") {
-			metricName = "rundeck_" + metricName
-		}
-
-		b, e := json.Marshal(v)
-		if e != nil {
-			fmt.Println(e)
-		}
-
-		e = json.Unmarshal(b, &d)
-		if e != nil {
-			fmt.Println(e)
-		}
-
-		fmt.Println(metricName+"_total : ", d.Count)
-		fmt.Println(metricName+"_rate : ", d.M1Rate, d.M5Rate, d.M15Rate, d.MeanRate)
-	}
-
-	return nil
-}
-
+// GetMetricValueCounter return the value for the Counter type.
 func (rc *RClient) GetMetricValueCounter(metricName string) (float64, error) {
 	var d DataInMetricCount
 
@@ -159,12 +61,12 @@ func (rc *RClient) GetMetricValueCounter(metricName string) (float64, error) {
 		}
 		return float64(d.Count), nil
 	} else {
-		e := fmt.Errorf("Error getting Metric Value Counter: %v", ok)
-		return 0.0, e
+		return 0.0, fmt.Errorf("Error getting Metric Value Counter")
 	}
 
 }
 
+// GetMetricValueGauge return the value for the Gauge type.
 func (rc *RClient) GetMetricValueGauge(metricName string) (float64, error) {
 	var d DataInMetricGauges
 
@@ -181,11 +83,11 @@ func (rc *RClient) GetMetricValueGauge(metricName string) (float64, error) {
 
 		return float64(d.Value), nil
 	} else {
-		return 0.0, fmt.Errorf("Error getting Metric Value Gauges: ", ok)
+		return 0.0, fmt.Errorf("Error getting Metric Value Gauges")
 	}
-
 }
 
+// GetMetricValueMeter return the value for the Meter type.
 func (rc *RClient) GetMetricValueMeter(metricName, dimension string) (float64, error) {
 	var d DataInMetricMeters
 
@@ -214,11 +116,11 @@ func (rc *RClient) GetMetricValueMeter(metricName, dimension string) (float64, e
 			return 0.0, nil
 		}
 	} else {
-		return 0.0, fmt.Errorf("Error getting Metric Value Meters: ", ok)
+		return 0.0, fmt.Errorf("Error getting Metric Value Meters")
 	}
-	return 0.0, nil
 }
 
+// GetMetricValueTimer return the value for the Timer type.
 func (rc *RClient) GetMetricValueTimer(metricName, dimension string) (float64, error) {
 	var d DataInMetricTimers
 
@@ -267,11 +169,11 @@ func (rc *RClient) GetMetricValueTimer(metricName, dimension string) (float64, e
 			return 0.0, nil
 		}
 	} else {
-		return 0.0, fmt.Errorf("Error getting Metric Value Timer: ", ok)
+		return 0.0, fmt.Errorf("Error getting Metric Value Timer.")
 	}
-	return 0.0, nil
 }
 
+// GetDimensions return the dimensions available on each of Types.
 func (rc *RClient) GetDimensions(mtype string) []string {
 
 	var ds []string
