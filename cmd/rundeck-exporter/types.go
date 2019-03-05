@@ -13,21 +13,22 @@ type configProm struct {
 }
 
 type config struct {
-	expListenAddr  *string
-	expMetricsPath *string
-	prom           *configProm
-	rcli           *rclient.RClient
+	expListenAddr     *string
+	expMetricsPath    *string
+	prom              *configProm
+	rcli              *rclient.RClient
+	collectorInterval *int
 }
 
 const (
-	exporterName        = "rundeck_exporter"
-	exporterDescription = "Rundeck Exporter"
-	defExpListenAddr    = ":9801"
-	defExpMetricsPath   = "/metrics"
-	defCollectInterval  = 60
-	defEnvAPIURL        = "RUNDECK_API_URL"
-	defEnvAPIToken      = "RUNDECK_API_TOKEN"
-	defEnvAPIUser       = "RUNDECK_PASS"
-	defEnvAPIPass       = "RUNDECK_USER"
-	defEnvAPIVersion    = "RUNDECK_API_VERSION"
+	exporterName         = "rundeck_exporter"
+	exporterDescription  = "Rundeck Exporter"
+	defExpListenAddr     = ":9801"
+	defExpMetricsPath    = "/metrics"
+	defCollectorInterval = 60
+	defEnvAPIURL         = "RUNDECK_API_URL"
+	defEnvAPIToken       = "RUNDECK_API_TOKEN"
+	defEnvAPIUser        = "RUNDECK_PASS"
+	defEnvAPIPass        = "RUNDECK_USER"
+	defEnvAPIVersion     = "RUNDECK_API_VERSION"
 )

@@ -13,8 +13,9 @@ import (
 
 // RMetrics keeps the collector info
 type RMetrics struct {
-	Client  *rclient.RClient
-	Metrics []*Metric
+	Client            *rclient.RClient
+	Metrics           []*Metric
+	CollectorInterval int
 }
 
 // Metric describe the metric attributes
@@ -29,11 +30,18 @@ type Metric struct {
 	LabelsValue []string
 }
 
+var (
+	metricCollectorName     = "collectorRundeck"
+	metricCollectorDuration time.Duration
+	metricCollectorSuccess  float64
+)
+
 // NewCollectorMetrics return the CollectorAnalytics object
-func NewCollectorMetrics(rcli *rclient.RClient, msEnabled ...string) (*RMetrics, error) {
+func NewCollectorMetrics(rcli *rclient.RClient, colInterval int, msEnabled ...string) (*RMetrics, error) {
 
 	ca := &RMetrics{
-		Client: rcli,
+		Client:            rcli,
+		CollectorInterval: colInterval,
 	}
 	err := ca.InitMetrics(msEnabled...)
 	if err != nil {
@@ -45,6 +53,14 @@ func NewCollectorMetrics(rcli *rclient.RClient, msEnabled ...string) (*RMetrics,
 
 // InitMetrics initialize a list of metrics names and return error if fails.
 func (ca *RMetrics) InitMetrics(msEnabled ...string) error {
+
+	if ca.Client.Metrics == nil {
+		err := ca.Client.UpdateMetrics()
+		if err != nil {
+			em := fmt.Errorf("Error initializing metrics from the server: %s", err)
+			panic(em)
+		}
+	}
 
 	// Create Counter metrics
 	for k := range ca.Client.Metrics.Counters {
@@ -140,12 +156,17 @@ func (ca *RMetrics) InitMetrics(msEnabled ...string) error {
 // InitCollectorsUpdater start the paralel auto update for each collector
 func (ca *RMetrics) InitCollectorsUpdater() {
 	for {
-		ca.collectorUpdate()
-
-		time.Sleep(time.Second * time.Duration(60))
+		mBegin := time.Now()
 		if err := ca.Client.UpdateMetrics(); err != nil {
 			fmt.Println("Unable to update Metrics: ", err)
+			metricCollectorSuccess = 0.0
+		} else {
+			metricCollectorSuccess = 1.0
 		}
+		metricCollectorDuration = time.Since(mBegin)
+
+		ca.collectorUpdate()
+		time.Sleep(time.Second * time.Duration(ca.CollectorInterval))
 	}
 }
 
@@ -210,6 +231,8 @@ func (ca *RMetrics) Update(ch chan<- prometheus.Metric) error {
 			}
 			wg.Done()
 		}(ca.Metrics[mID], ch)
+		// ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, metricCollectorDuration.Seconds(), metricCollectorName)
+		// ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, 1, "rundeckMetrics")
 	}
 
 	wg.Wait()

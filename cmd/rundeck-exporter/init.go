@@ -33,7 +33,7 @@ func init() {
 	apiToken := flag.String("rundeck.token", "", "API token")
 	apiVersion := flag.String("rundeck.version", "", "API version")
 
-	// collectorInterval := flag.Int("metrics.interval", defCollectInterval, "Interval in seconds to retrieve metrics from API")
+	cfg.collectorInterval = flag.Int("metrics.interval", defCollectorInterval, "Interval in seconds to retrieve metrics from API")
 
 	flag.Usage = usage
 	flag.Parse()
@@ -62,19 +62,30 @@ func init() {
 		*apiVersion = v
 	}
 
-	if (*apiUser == "" || *apiPass == "") && (*apiToken == "") {
-		panic("Error, auth Token, or User && Password was not provided")
+	if cfg.collectorInterval == nil {
+		*cfg.collectorInterval = defCollectorInterval
+	}
+
+	if (*apiUser == "" || *apiPass == "") || (*apiToken == "") {
+		emsg := fmt.Errorf("#ERR> unable to find credentials, User and Passord, or Toekn")
+		fmt.Println(emsg)
+		os.Exit(1)
 	}
 
 	rconf, ecfg := rclient.NewConfig()
 	if ecfg != nil {
 		emsg := fmt.Errorf("Unable to create the client")
-		panic(emsg)
+		fmt.Println(emsg)
+		os.Exit(1)
 	}
 	rconf.Base.BaseURL = *apiURL
 	rconf.Base.APIVersion = *apiVersion
 
-	if *apiUser != "" && *apiPass != "" {
+	if *apiUser == "" || *apiPass == "" {
+		emsg := fmt.Errorf("unable to create the client. Missing User and Passwords")
+		fmt.Println(emsg)
+		os.Exit(1)
+	} else {
 		rconf.EnableHTTP = true
 		rconf.Base.AuthMethod = "basic"
 		rconf.Base.Username = *apiUser
@@ -93,14 +104,10 @@ func init() {
 	}
 	cfg.rcli = rcli
 
-	// if err := rcli.ListProjects(); err != nil {
-	// 	fmt.Println("Unable to list projects")
+	// Sample to show the metrics on the initialization:
+	// if err := rcli.UpdateMetrics(); err != nil {
+	// 	fmt.Println("Unable to update Metrics: ", err)
 	// }
-
-	if err := rcli.UpdateMetrics(); err != nil {
-		fmt.Println("Unable to update Metrics: ", err)
-	}
-
 	// if err := rcli.ShowMetrics(); err != nil {
 	// 	fmt.Println("Unable to show Metrics: ", err)
 	// }
@@ -115,7 +122,7 @@ func initPromCollector() error {
 		cfg.prom = new(configProm)
 	}
 
-	cfg.prom.Collector, err = collector.NewCollectorMaster(cfg.rcli)
+	cfg.prom.Collector, err = collector.NewCollectorMaster(cfg.rcli, *cfg.collectorInterval)
 	if err != nil {
 		log.Warnln("Init Prom: Couldn't create collector: ", err)
 		return err

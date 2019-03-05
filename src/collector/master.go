@@ -11,8 +11,9 @@ import (
 
 // Master implements the prometheus.Collector interface.
 type Master struct {
-	Collectors map[string]Collector
-	RClient    *rclient.RClient
+	Collectors        map[string]Collector
+	RClient           *rclient.RClient
+	CollectorInterval int
 }
 
 // Collector is the interface a collector has to implement.
@@ -44,11 +45,11 @@ var (
 )
 
 // NewCollectorMaster creates a new NodeCollector.
-func NewCollectorMaster(rcli *rclient.RClient, metrics ...string) (*Master, error) {
+func NewCollectorMaster(rcli *rclient.RClient, collectInterval int) (*Master, error) {
 	var err error
 	err = nil
 	collectors := make(map[string]Collector)
-	collectors["metrics"], err = NewCollectorMetrics(rcli, metrics...)
+	collectors["metrics"], err = NewCollectorMetrics(rcli, collectInterval)
 	if err != nil {
 		panic(err)
 	}
