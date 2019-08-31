@@ -28,8 +28,8 @@ func init() {
 	cfg.expMetricsPath = flag.String("web.telemetry-path", defExpMetricsPath, "Path under which to expose metrics.")
 
 	apiURL := flag.String("rundeck.url", "", "API URL")
-	apiUser := flag.String("rundeck.user", "", "API USER")
-	apiPass := flag.String("rundeck.pass", "", "API_PASS")
+	apiUser := flag.String("rundeck.user", "", "API user")
+	apiPass := flag.String("rundeck.pass", "", "API pass")
 	apiToken := flag.String("rundeck.token", "", "API token")
 	apiVersion := flag.String("rundeck.version", "", "API version")
 
