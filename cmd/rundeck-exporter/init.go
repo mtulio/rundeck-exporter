@@ -50,7 +50,7 @@ func init() {
 		*apiUser = os.Getenv(defEnvAPIUser)
 	}
 
-	if apiPass == nil {
+	if *apiPass == "" {
 		*apiPass = os.Getenv(defEnvAPIPass)
 	}
 
