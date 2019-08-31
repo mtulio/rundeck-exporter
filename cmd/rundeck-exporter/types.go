@@ -28,7 +28,7 @@ const (
 	defCollectorInterval = 60
 	defEnvAPIURL         = "RUNDECK_API_URL"
 	defEnvAPIToken       = "RUNDECK_API_TOKEN"
-	defEnvAPIUser        = "RUNDECK_PASS"
-	defEnvAPIPass        = "RUNDECK_USER"
+	defEnvAPIUser        = "RUNDECK_USER"
+	defEnvAPIPass        = "RUNDECK_PASS"
 	defEnvAPIVersion     = "RUNDECK_API_VERSION"
 )
