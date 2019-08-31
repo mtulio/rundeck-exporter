@@ -66,7 +66,7 @@ func init() {
 		*cfg.collectorInterval = defCollectorInterval
 	}
 
-	if (*apiUser == "" || *apiPass == "") || (*apiToken == "") {
+	if (*apiUser == "" || *apiPass == "") && (*apiToken == "") {
 		emsg := fmt.Errorf("#ERR> unable to find credentials, User and Password, or Token")
 		fmt.Println(emsg)
 		os.Exit(1)
@@ -81,10 +81,9 @@ func init() {
 	rconf.Base.BaseURL = *apiURL
 	rconf.Base.APIVersion = *apiVersion
 
-	if *apiUser == "" || *apiPass == "" {
-		emsg := fmt.Errorf("unable to create the client. Missing User and Passwords")
-		fmt.Println(emsg)
-		os.Exit(1)
+	if *apiToken != "" {
+		rconf.EnableAPI = true
+		rconf.Base.Token = *apiToken
 	} else {
 		rconf.EnableHTTP = true
 		rconf.Base.AuthMethod = "basic"
@@ -92,12 +91,7 @@ func init() {
 		rconf.Base.Password = *apiPass
 	}
 
-	if *apiToken != "" {
-		rconf.EnableAPI = true
-		rconf.Base.Token = *apiToken
-	}
-
-	// Init clint
+	// Init client
 	rcli, err := rclient.NewClient(rconf)
 	if err != nil {
 		panic(err)
