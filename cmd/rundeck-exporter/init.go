@@ -67,7 +67,7 @@ func init() {
 	}
 
 	if (*apiUser == "" || *apiPass == "") || (*apiToken == "") {
-		emsg := fmt.Errorf("#ERR> unable to find credentials, User and Passord, or Token")
+		emsg := fmt.Errorf("#ERR> unable to find credentials, User and Password, or Token")
 		fmt.Println(emsg)
 		os.Exit(1)
 	}
