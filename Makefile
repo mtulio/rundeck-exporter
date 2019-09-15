@@ -1,8 +1,8 @@
-include Makefile-glob.mk
-include Makefile-fc.mk
-
 # Defaut APP name to build
 APP_NAME ?= rundeck-exporter
+
+include Makefile-glob.mk
+include Makefile-fc.mk
 
 # Build a version
 .PHONY: build
@@ -14,8 +14,9 @@ build: clean
 		go build \
 		-ldflags "$(LDFLAGS)" \
 		$(BUILD_TAGS) \
-		-o $(BIN_NAME)/$(APP_NAME) && strip $(BIN_NAME)/$(APP_NAME) \
-	; cd -)
+		-o $(BIN_NAME) && strip $(BIN_NAME) \
+	; \
+	chmod u+x $(BIN_NAME); cd -)
 
 .PHONY: run
 run:
@@ -27,7 +28,7 @@ version: build
 
 .PHONY: clean
 clean:
-	@rm -f bin/$(BIN_NAME)
+	@rm -f $(BIN_NAME)
 
 # ##################
 # Release Management
