@@ -22,7 +22,7 @@ The metrics will be exported prefixed with `rundeck_` name (Prometheus namespace
 
 `RUNDECK_API_TOKEN=xzy1231212`
 
-## USAGE
+## Usage
 
 1. Export the environment for your Rundeck:
 
@@ -37,7 +37,7 @@ export RUNDECK_API_TOKEN=xzy1231212
 Show Rundeck metrics:
 
 ```bash
-./bin/rundeck -exporter -azion.email=my@email.com -azion.password=myPass
+./bin/rundeck-exporter -exporter -rundeck.user $RUN_USER -rundeck.pass $RUN_PASS -no-verify-ssl
 ```
 
 > Sample output for `$ curl localhost:9802/metrics`:
@@ -90,14 +90,15 @@ Show Rundeck metrics running in docker;.
 
 ```bash
 docker run -p 9802:9802 -id mtulio/rundeck-exporter:latest \
-    -rundeck.user=myUser -rundeck.pass=pass
+    -rundeck.user=$RUN_USER \
+    -rundeck.pass=$RUN_PASS
 ```
 
 * Docker Compose definition
 
 ```YAML
 # Rundeck exporter - https://github.com/mtulio/rundeck-exporter
-  azion:
+  exporter:
     image: mtulio/rundeck-exporter:v0.1.1
     command:
         - -rundeck.email=myUser
@@ -120,11 +121,4 @@ docker run -p 9802:9802 -id mtulio/rundeck-exporter:latest \
 
 ## Changelog
 
-`v0.1.0`:
-
-* Initial release with basic metrics translated from `/metrics/metrics`
-
-`v0.2.0`:
-
-* Supporting goreleaser.
-* Change default port to 9802
+See on each [release](https://github.com/mtulio/rundeck-exporter/releases).
