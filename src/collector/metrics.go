@@ -66,6 +66,7 @@ func (ca *RMetrics) InitMetrics(msEnabled ...string) error {
 	for k := range ca.Client.Metrics.Counters {
 		m := Metric{}
 		mName := strings.Replace(k, ".", "_", -1)
+		mName = strings.Replace(mName, "-", "_", -1)
 		m.NameRaw = k
 		m.Type = rclient.MTypeCounter
 
@@ -85,6 +86,7 @@ func (ca *RMetrics) InitMetrics(msEnabled ...string) error {
 	for k := range ca.Client.Metrics.Gauges {
 		m := Metric{}
 		mName := strings.Replace(k, ".", "_", -1)
+		mName = strings.Replace(mName, "-", "_", -1)
 		m.NameRaw = k
 		m.Type = rclient.MTypeGauge
 
@@ -106,6 +108,7 @@ func (ca *RMetrics) InitMetrics(msEnabled ...string) error {
 			m := Metric{}
 
 			mName := strings.Replace(k, ".", "_", -1)
+			mName = strings.Replace(mName, "-", "_", -1)
 			m.NameRaw = k
 			m.NameDim = d
 			m.Type = rclient.MTypeMeter
