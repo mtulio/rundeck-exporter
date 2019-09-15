@@ -32,6 +32,7 @@ func init() {
 	apiPass := flag.String("rundeck.pass", "", "API pass")
 	apiToken := flag.String("rundeck.token", "", "API token")
 	apiVersion := flag.String("rundeck.version", "", "API version")
+	noVerifySSL := flag.Bool("no-verify-ssl", false, "Disable SSL Verify on HTTP Request.")
 
 	cfg.collectorInterval = flag.Int("metrics.interval", defCollectorInterval, "Interval in seconds to retrieve metrics from API")
 
@@ -66,9 +67,15 @@ func init() {
 		*cfg.collectorInterval = defCollectorInterval
 	}
 
+	if *apiURL == "" {
+		emsg := fmt.Errorf("#ERR> Rundeck URL not found. See option -rundeck.url or env RUNDECK_URL")
+		log.Errorln(emsg)
+		os.Exit(1)
+	}
+
 	if (*apiUser == "" || *apiPass == "") && (*apiToken == "") {
 		emsg := fmt.Errorf("#ERR> unable to find credentials, User and Password, or Token")
-		fmt.Println(emsg)
+		log.Errorln(emsg)
 		os.Exit(1)
 	}
 
@@ -91,6 +98,10 @@ func init() {
 		rconf.Base.Password = *apiPass
 	}
 
+	if *noVerifySSL {
+		rconf.DisableVerifySSL()
+	}
+
 	// Init client
 	rcli, err := rclient.NewClient(rconf)
 	if err != nil {
@@ -99,9 +110,10 @@ func init() {
 	cfg.rcli = rcli
 
 	// Sample to show the metrics on the initialization:
-	// if err := rcli.UpdateMetrics(); err != nil {
-	// 	fmt.Println("Unable to update Metrics: ", err)
-	// }
+	log.Print("Retrieving metrics on the Startup...")
+	if err := rcli.UpdateMetrics(); err != nil {
+		fmt.Println("Unable to update Metrics: ", err)
+	}
 	// if err := rcli.ShowMetrics(); err != nil {
 	// 	fmt.Println("Unable to show Metrics: ", err)
 	// }

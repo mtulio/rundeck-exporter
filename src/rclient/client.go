@@ -18,6 +18,7 @@ func NewClient(rconf *RConf) (*RClient, error) {
 	if rconf.EnableAPI {
 		cfg := &rundeck.ClientConfig{
 			BaseURL:    rconf.Base.BaseURL,
+			VerifySSL:  rconf.Base.VerifySSL,
 			APIVersion: rconf.Base.APIVersion,
 			Token:      rconf.Base.Token,
 		}
@@ -30,6 +31,7 @@ func NewClient(rconf *RConf) (*RClient, error) {
 	if rconf.EnableHTTP {
 		cfg := &rundeck.ClientConfig{
 			BaseURL:      rconf.Base.BaseURL,
+			VerifySSL:    rconf.Base.VerifySSL,
 			APIVersion:   rconf.Base.APIVersion,
 			AuthMethod:   rconf.Base.AuthMethod,
 			Username:     rconf.Base.Username,
