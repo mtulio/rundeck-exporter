@@ -28,8 +28,8 @@ func init() {
 	cfg.expMetricsPath = flag.String("web.telemetry-path", defExpMetricsPath, "Path under which to expose metrics.")
 
 	apiURL := flag.String("rundeck.url", "", "API URL")
-	apiUser := flag.String("rundeck.user", "", "API USER")
-	apiPass := flag.String("rundeck.pass", "", "API_PASS")
+	apiUser := flag.String("rundeck.user", "", "API user")
+	apiPass := flag.String("rundeck.pass", "", "API pass")
 	apiToken := flag.String("rundeck.token", "", "API token")
 	apiVersion := flag.String("rundeck.version", "", "API version")
 
@@ -50,7 +50,7 @@ func init() {
 		*apiUser = os.Getenv(defEnvAPIUser)
 	}
 
-	if apiPass == nil {
+	if *apiPass == "" {
 		*apiPass = os.Getenv(defEnvAPIPass)
 	}
 
@@ -66,8 +66,8 @@ func init() {
 		*cfg.collectorInterval = defCollectorInterval
 	}
 
-	if (*apiUser == "" || *apiPass == "") || (*apiToken == "") {
-		emsg := fmt.Errorf("#ERR> unable to find credentials, User and Passord, or Token")
+	if (*apiUser == "" || *apiPass == "") && (*apiToken == "") {
+		emsg := fmt.Errorf("#ERR> unable to find credentials, User and Password, or Token")
 		fmt.Println(emsg)
 		os.Exit(1)
 	}
@@ -81,10 +81,9 @@ func init() {
 	rconf.Base.BaseURL = *apiURL
 	rconf.Base.APIVersion = *apiVersion
 
-	if *apiUser == "" || *apiPass == "" {
-		emsg := fmt.Errorf("unable to create the client. Missing User and Passwords")
-		fmt.Println(emsg)
-		os.Exit(1)
+	if *apiToken != "" {
+		rconf.EnableAPI = true
+		rconf.Base.Token = *apiToken
 	} else {
 		rconf.EnableHTTP = true
 		rconf.Base.AuthMethod = "basic"
@@ -92,12 +91,7 @@ func init() {
 		rconf.Base.Password = *apiPass
 	}
 
-	if *apiToken != "" {
-		rconf.EnableAPI = true
-		rconf.Base.Token = *apiToken
-	}
-
-	// Init clint
+	// Init client
 	rcli, err := rclient.NewClient(rconf)
 	if err != nil {
 		panic(err)
